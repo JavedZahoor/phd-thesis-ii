@@ -7,9 +7,12 @@ import time
 from MachineSpecificSettings import Settings
 from DataSetLoaderLib import DataSetLoader
 from SimilarityCalculator import *
+from GlobalUtils import *
+
 #from GlobalUtils import *
 
 """ FUNCTION FindMaxCorelatedFeatures"""
+@timing
 def FindMaxCorelatedFeatures(corrMatrix):
 	#simply find the max value and return its row and col indeces along with the value
 	
@@ -24,6 +27,7 @@ def FindMaxCorelatedFeatures(corrMatrix):
 	
 	we need ThetaL for this purpose; which is the angle between the first two components of the PCA result
 """
+@timing
 def generateNewMetaGene(Fa, Fb):
 	pca = PCA(numpy.column_stack((Fa, Fb)));
 	# need to use either .a or .Y from this object; a is the original but normalized matrix while Y is the transformed one.	
@@ -35,15 +39,18 @@ def generateNewMetaGene(Fa, Fb):
 """End of generateNewMetaGene"""	
 
 """Function performTreeletClustering"""
+@timing
 def performTreeletClustering(DatasetName):
 	#% manually calculating correlation
 	d = DataSetLoader();
 	G = d.LoadDataSet(DatasetName);
 	F = G;
 	M = [];
+	cacheTopXPerPart = 100;
 	#calculate pairwise pearson correlation once which we will keep on changing with each new iteration
 	corrCalculator = PairwisePearsonCorrelationCalculator();
-	corrMatrix = corrCalculator.CalculateSimilarity(G)
+	corrMatrix = corrCalculator.CalculateSimilarity(G, d.GetPartSize(DatasetName), cacheTopXPerPart);
+	##Save the file names for future use
 	p = F[0,:].size
 	for i in range (0, p):
 		#steps 1 & 2 of the fig.1 of 20160224 - find pair wise correlation of F and pick the two most correlated columns

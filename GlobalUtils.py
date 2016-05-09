@@ -27,3 +27,13 @@ def logDebug(tag, msg):
 			logfile.close();
 	print(msg)
 """END UTILITY FUNCTIONS"""
+
+##http://stackoverflow.com/questions/5478351/python-time-measure-function
+def timing(f):
+    def wrap(*args):
+        time1 = time.time()
+        ret = f(*args)
+        time2 = time.time()
+        print '%s function took %0.3f ms' % (f.func_name, (time2-time1)*1000.0)
+        return ret
+    return wrap
