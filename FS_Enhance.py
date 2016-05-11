@@ -2,7 +2,8 @@ import scipy.io
 import numpy
 import math
 import time
-#import json
+import json
+#from matplotlib.mlab import PCA
 #import traceback
 from MachineSpecificSettings import Settings
 from DataSetLoaderLib import DataSetLoader
@@ -46,7 +47,7 @@ def performTreeletClustering(DatasetName):
 	G = d.LoadDataSet(DatasetName);
 	F = G;
 	M = [];
-	cacheTopXPerPart = 100;
+	cacheTopXPerPart = 30000;
 	#calculate pairwise pearson correlation once which we will keep on changing with each new iteration
 	corrCalculator = PairwisePearsonCorrelationCalculator();
 	corrMatrix = corrCalculator.CalculateSimilarity(G, d.GetPartSize(DatasetName), cacheTopXPerPart);
@@ -87,12 +88,22 @@ def performTreeletClustering(DatasetName):
 """ MAIN CODE FOR TREELET CLUSTERING """
 def main():
 	F = performTreeletClustering("A");
+	json.dump(F, open('treelet.json','w'));
+	numpy.save('treelet.npy', F)	
+	with open("log.txt", "a") as logfile:
+		logfile.write("--- %s completed the treelet clustering " + tag + "---" % (time.time() - start_time));
+		logfile.close();
+
 
 if __name__=="__main__":
 	main();
 	
-#json.dump(F, open('treelet.json','w'));
-numpy.save('treelet.npy', F)	
-with open("log.txt", "a") as logfile:
-	logfile.write("--- %s completed the treelet clustering " + tag + "---" % (time.time() - start_time));
-	logfile.close();
+""" REFERENCES
+https://documen.tician.de/pycuda/metaprog.html#metaprog
+
+PCA
+http://stackoverflow.com/questions/1730600/principal-component-analysis-in-python
+[sarim]http://sebastianraschka.com/Articles/2014_pca_step_by_step.html
+** [sarim]http://stackoverflow.com/questions/13224362/principal-component-analysis-pca-in-python
+[sarim]http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html
+"""

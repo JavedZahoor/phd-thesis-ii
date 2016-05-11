@@ -6,7 +6,7 @@ class DataSetLoader(object):
         s = Settings();
         if dataSetType == "A":
             mat = scipy.io.loadmat(s.getBasePath() + s.getInterimPath() + s.getDatasetAFileName());
-            return mat['G0'];
+            return mat['G0'][:, :];
         else:
             return [[2.5, 3.5, 3.0, 3.5, 2.5, 3.0],[2.5, 3.5, 3.0, 3.5, 2.5, 3.0]];
             

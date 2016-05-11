@@ -1,13 +1,14 @@
 import numpy
 import math
-import time
+#import time
+from timeit import default_timer as timer
 import json
 import traceback
 
 """GLOBALS"""
 logTimings=1
 logToFile=1
-start_time = time.time()
+start_time = timer()
 logFileName = 'log.txt'
 """ """
 with open(logFileName, "w") as logfile:
@@ -17,12 +18,12 @@ with open(logFileName, "w") as logfile:
 """UTILITY FUNCTIONS"""
 def logDebug(tag, msg):
 	if(logTimings):
-		print((time.time() - start_time))
+		print((timer() - start_time))
 		print("--- to " + tag + "---");
 	if(logToFile):
 		with open(logFileName, "a") as logfile:
 			logfile.write("--- to " + tag + "---");
-			logfile.write("%s" %(time.time() - start_time));
+			logfile.write("%s" %(timer() - start_time));
 			logfile.write("\n");
 			logfile.close();
 	print(msg)
@@ -31,9 +32,11 @@ def logDebug(tag, msg):
 ##http://stackoverflow.com/questions/5478351/python-time-measure-function
 def timing(f):
     def wrap(*args):
-        time1 = time.time()
+        time1 = timer()
+        #change this to timer to get more precise estimate of timings
+        print("Calling %s" %f.func_name);
         ret = f(*args)
-        time2 = time.time()
+        time2 = timer()
         print '%s function took %0.3f ms' % (f.func_name, (time2-time1)*1000.0)
         return ret
     return wrap

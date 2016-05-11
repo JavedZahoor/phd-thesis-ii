@@ -2,6 +2,7 @@ from GlobalUtils import *
 from scipy import sparse
 #import numpy as np
 
+
 import pycuda.autoinit
 import pycuda.driver as drv
 from pycuda.compiler import SourceModule
@@ -28,7 +29,7 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
         #so now we will be saving the corr matrix by parts in different files and use files for processing
         ######Result = numpy.zeros((aPart, aPart), dtype=float);
         totalParts = theMatrix.shape[1] / aPart;
-        
+        hashtable = {};
         #http://docs.scipy.org/doc/numpy-1.10.1/reference/generated/numpy.chararray.html
         #fileNames = numpy.chararray((totalParts, totalParts), itemsize=12);#each item will be 12 char long corr_00i_00j at max
         
@@ -38,10 +39,10 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
         """"""
         #outfile = NamedTemporaryFile(delete=False);#TemporaryFile();#will be used to save all the parts of the corr matrix
         #print(outfile.name);
-        vectorCache = numpy.array([(-1,-1,0.0)], dtype=[('i', int), ('j', int), ('corr', float)]);
-        for i in range (0, totalParts):
+        vectorCache = numpy.array([], dtype=[('i', int), ('j', int), ('corr', float)]);#(-1,-1,0.0)
+        for i in range (0, totalParts-1):
             print("i="+str(i));
-            for j in range(i, totalParts):
+            for j in range(i, totalParts-1):
                 print("j=" + str(j));
                 A = theMatrixTranspose[i*aPart:(i+1)*aPart,:].tolist();
                 ## Last part should not take full space if it is not required to do so
@@ -49,9 +50,12 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
                 print("A = " + str(len(A)));
                 print("B = " + str(len(B)));
                 Result = pearson_correlation(A, B)
-                vectorCache = numpy.concatenate((vectorCache, self.ExtractTopCorrValues(Result, cacheTopXPerPart, aPart)));
+                print('going to concatenate vectorCache with the main list');
+                newlist, hashtable = self.ExtractTopCorrValues(Result, cacheTopXPerPart, aPart, hashtable, i, j);
+                vectorCache = numpy.concatenate((vectorCache, newlist));
+                print('concatenation done...');
                 """
-                rejectino this because of mem limitations on the GPU RAM for the whole 1Mx1Mxfloat32 requirements
+                rejection this because of mem limitations on the GPU RAM for the whole 1Mx1Mxfloat32 requirements
                 #if(i==j):
                     #the input is a aPartx88 matrices
                     #H = pearson_correlation(GDash, GDash);
@@ -76,7 +80,10 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
                 #numpy.savez(outfile,a=a, b=b); commented temporarily to see if diskspace was the only issue.
                 """
         #return sorted list
-        return vectorCache.sort(axis=0, kind='quicksort', order='corr');
+        print('going to sort...');
+        sortedVectorCache = vectorCache.sort(axis=0, kind='quicksort', order='corr');
+        print('Calculate Similarity done.');
+        return sortedVectorCache;
     
     @timing
     def UpdateSimilarity(self, theUpdatedMatrix, theVector, a, b):
@@ -95,36 +102,64 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
         return corrMatrix;
     
     @timing
-    def ExtractTopCorrValues(self, thematrix, thingsToExtract, dim):
+    def ExtractTopCorrValues(self, thematrix, thingsToExtract, dim, hashtable, originalI, originalJ):
         """
         http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.sort.html
         """
-        extractedList = numpy.array([(-1,-1,0.0)], dtype=[('i', int), ('j', int), ('corr', float)]);
-        totalCollected = 0
-        hashtable = {};
+        ignoreDiagonal = originalI == originalJ;
+        #extractedList = numpy.array([], dtype=[('i', int), ('j', int), ('corr', float)]);
+        extractedList=[]
         c=0;
-        while totalCollected < thingsToExtract and c<dim:
+        while len(extractedList) < thingsToExtract and c<dim*dim:
+            print('before argmax ' + str(len(extractedList)) + ' ' + str(c))
             loc = numpy.argmax(thematrix);
+            print('after argmax =' + str(loc) + " value=" +str(numpy.max(thematrix)));
             #find out indeces from this value and create a touple
-            i= loc/dim;
-            j= loc%dim;
-            if thematrix[i,j]<=0: #if this is the best you can do then we dont need your services, thanks!
+            i= loc/dim + originalI * dim;
+            j= loc%dim + originalJ * dim;
+            locali = i;
+            localj = j;#these are needed to remove this value later on in the last line of this loop
+            print("thematrix["+str(i)+"]["+str(j)+"]="+str(thematrix[i][j]));
+            i += originalI * dim;
+            j += originalJ * dim;
+            
+            if ignoreDiagonal and locali==localj:
+                continue;
+            if thematrix[locali,localj]<=0: #if this is the best you can do then we dont need your services, thanks!
                 return extractedList;
             #ensure atleast block level uniqueness of the vectors i.e. no vector should reappear ever
             
-            if hashtable.has_key(str(i)) and hashtable.has_key(str(j)): #we need this one
+            if True!=hashtable.has_key(str(i)) and True!=hashtable.has_key(str(j)): #we need this one
+                print "inside hastable wala if and value of c is = "+str(c)
                 hashtable[str(i)]='y';
                 hashtable[str(j)]='y';
                 #need to stop when thingsToExtract values have been added to the list actually, not when they have been checked
-                totalCollected += 1;
-                
                 if c==0:
-                    extractedList=numpy.array([(i, j, thematrix[i,j])], dtype=[('i', int), ('j', int), ('corr', float)]);
+                    print('before extracted list');
+                    #extractedList=numpy.array([(i, j, thematrix[i,j])], dtype=[('i', int), ('j', int), ('corr', float)]);
+                    extractedList.append((i, j, thematrix[locali,localj]))
+                    print('after extracted list: ');
+                    print len(extractedList)
                 else:
                     #http://stackoverflow.com/questions/9775297/append-a-numpy-array-to-a-numpy-array
-                    extractedList = numpy.concatenate((extractedList,(i, j, thematrix[i,j])));
-            
+                    print('before concatenate');
+                    #extractedList = numpy.concatenate((extractedList,(i, j, thematrix[i,j])));
+                    extractedList.append((i, j, thematrix[locali,localj]))
+                    print len(extractedList)
+                    print('after concatenate');
+            elif hashtable.has_key(str(i))==True:
+                print('*****Going to flush off the row now*****');
+                for t in range(0, dim):
+                    thematrix[locali, t]=-1;
+                    thematrix[t, locali]=-1;
+            elif hashtable.has_key(str(j))==True:
+                print('|||||Going to flush off the row now|||||');
+                for t in range(0, dim):
+                    thematrix[t, localj]=-1;
+                    thematrix[localj, t]=-1;
             #forget about this one so we could move ahead
-            thematrix[i,j]=0;
+            thematrix[locali,localj]=0;
+            thematrix[localj,locali]=0;
             c+=1;
-        return extractedList;
+            print('========================================')
+        return (extractedList, hashtable);
