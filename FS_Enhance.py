@@ -12,15 +12,6 @@ from GlobalUtils import *
 
 #from GlobalUtils import *
 
-""" FUNCTION FindMaxCorelatedFeatures"""
-@timing
-def FindMaxCorelatedFeatures(corrMatrix):
-	#simply find the max value and return its row and col indeces along with the value
-	
-	val = -1
-	
-	return [0,1,val];
-""" END OF FUNCTION FindMaxCorelatedFeatures"""
 """FUNCTION generateNewMetaGene
 	Use Local PCA i.e.
 	for the two features, calculate local PCA, then calculate Jacobi rotation and then calculate (coarse grain) m = Fa cos ThetaL + Fb sin ThetaL 
@@ -47,7 +38,7 @@ def performTreeletClustering(DatasetName):
 	G = d.LoadDataSet(DatasetName);
 	F = G;
 	M = [];
-	cacheTopXPerPart = 30000;
+	cacheTopXPerPart = d.cacheTopXPerPart(DatasetName);
 	#calculate pairwise pearson correlation once which we will keep on changing with each new iteration
 	corrCalculator = PairwisePearsonCorrelationCalculator();
 	corrMatrix = corrCalculator.CalculateSimilarity(G, d.GetPartSize(DatasetName), cacheTopXPerPart);
@@ -55,7 +46,7 @@ def performTreeletClustering(DatasetName):
 	p = F[0,:].size
 	for i in range (0, p):
 		#steps 1 & 2 of the fig.1 of 20160224 - find pair wise correlation of F and pick the two most correlated columns
-		theVectors = FindMaxCorelatedFeatures(corrMatrix);
+		theVectors = corrMatrix[i];
 		#print (theVectors);
 		Fa = F[:,theVectors[0]];
 		Fb = F[:,theVectors[1]];		
@@ -74,9 +65,10 @@ def performTreeletClustering(DatasetName):
 		else:
 			M = numpy.column_stack((m, M)) #include in the meta genes set as well
 		logDebug(" append meta gene ", "")
-		#now update the corrMatrix for this new matrix; remove the two vectors and related values, use one of them for m
+		#now update the corrMatrix for this new vector m; remove the two vectors and related values, use one of them for m
 		corrMatrix = corrCalculator.UpdateSimilarity(corrMatrix, F, m, theVectors[0], theVectors[1]);
-		
+		if theVectors[3]=="superceeded": #everything after this is potentially incorrect so lets recalculate the matrix
+			corrMatrix = corrCalculator.CalculateSimilarity(F, d.GetPartSize(DatasetName), cacheTopXPerPart);
 		
 	F = numpy.column_stack((G, M)) #scipy.append(G, M, 1) #define a new expanded featureset F = G U M	
 	logDebug(" generate treelet clustering ", "")
