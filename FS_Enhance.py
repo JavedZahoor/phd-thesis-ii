@@ -38,40 +38,46 @@ def performTreeletClustering(DatasetName):
 	G = d.LoadDataSet(DatasetName);
 	F = G;
 	M = [];
-	cacheTopXPerPart = d.cacheTopXPerPart(DatasetName);
+	cacheTopXPerPart = d.CacheTopXPerPart(DatasetName);
 	#calculate pairwise pearson correlation once which we will keep on changing with each new iteration
 	corrCalculator = PairwisePearsonCorrelationCalculator();
 	corrMatrix = corrCalculator.CalculateSimilarity(G, d.GetPartSize(DatasetName), cacheTopXPerPart);
-	##Save the file names for future use
+	logInfo("starting off with " + str(len(corrMatrix)) );
 	p = F[0,:].size
 	for i in range (0, p):
 		#steps 1 & 2 of the fig.1 of 20160224 - find pair wise correlation of F and pick the two most correlated columns
-		theVectors = corrMatrix[i];
-		#print (theVectors);
+		theVectors = corrMatrix[0];#this is always the max corr so the element we want to process
+		logDebug(theVectors);
+		#logDebug (theVectors);
 		Fa = F[:,theVectors[0]];
 		Fb = F[:,theVectors[1]];		
-		logDebug(" find a pair of most correlated vectors ", i);		
+		logInfo(" find a pair of most correlated vectors " + str(i));		
 		#generate a new meta gene using the two picked up columns
 		m = generateNewMetaGene(Fa, Fb)
-		logDebug(" generate one new gene ","");
+		#print(" generate one new gene ");
 		#delete the two selected columns from the F and add the newly generate m to F; scipy.delete(F, 0 based index of col, 0=row and 1=col)
 		# REUSE THIS PLACE FOR m F = scipy.delete(F, theVectors[0], 1)		
 		F = scipy.delete(F, theVectors[1], 1)
-		logDebug(" delete Fa & Fb ",F[0,:].size)
+		logDebug(" delete Fa & Fb " + str(F[0,:].size));
 		#F = numpy.column_stack((m, F)) #include in the main feature set
-		F[theVectors[0],:]=m;
+		
 		if not len(M): #if this is the first meta gene in this matrix
 			M = m
 		else:
 			M = numpy.column_stack((m, M)) #include in the meta genes set as well
-		logDebug(" append meta gene ", "")
+		logInfo(" append meta gene ");
+		##remove the tuple at corrPointer and keep the pointer at 0 or increment the pointer and adjust with the update call
+		corrMatrix.pop(0);
+		#corrPointer = corrPointer+1;
 		#now update the corrMatrix for this new vector m; remove the two vectors and related values, use one of them for m
 		corrMatrix = corrCalculator.UpdateSimilarity(corrMatrix, F, m, theVectors[0], theVectors[1]);
-		if theVectors[3]=="superceeded": #everything after this is potentially incorrect so lets recalculate the matrix
+		F[theVectors[0],:]=m;
+		if theVectors[3]=="superceeded" or len(corrMatrix)<=0: #everything after this is potentially incorrect so lets recalculate the matrix
 			corrMatrix = corrCalculator.CalculateSimilarity(F, d.GetPartSize(DatasetName), cacheTopXPerPart);
+			
 		
 	F = numpy.column_stack((G, M)) #scipy.append(G, M, 1) #define a new expanded featureset F = G U M	
-	logDebug(" generate treelet clustering ", "")
+	logInfo(" generate treelet clustering ")
 	return F
 """END OF FUNCTION performTreeletClustering"""
 

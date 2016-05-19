@@ -1,3 +1,4 @@
+from GlobalUtils import *
 class Settings(object):
     def getBasePath(self):
         return '/home/javedzahoor/research/mattia/code/';
@@ -7,3 +8,11 @@ class Settings(object):
         
     def getInterimPath(self):
         return '../data/';
+    def isLocalMachine(self):
+        simulating = False;
+        if simulating:
+            logWarning("WORKING FOR LOCAL SETTINGS");
+        return simulating;
+    def sampleSize(self):
+        logWarning("HARD CODED VALUE IN MachineSpecificSettings.sampleSize()");
+        return 3010;

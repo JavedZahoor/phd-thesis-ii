@@ -1,3 +1,4 @@
+from GlobalUtils import * 
 import numpy
 from LoadDataSetA import LoadDataSet
 from MachineSpecificSettings import Settings
@@ -6,7 +7,7 @@ p=20
 w=2;
 G = numpy.matrix((88,p), dtype=float)
 Result = numpy.zeros([p,p], dtype=float)
-print("going to start the loops now")
+logDebug ("going to start the loops now")
 LoadDataSet()
 for i in range (0, p/w):
     print("i=")

@@ -6,6 +6,10 @@ import json
 import traceback
 
 """GLOBALS"""
+debugMessages = True
+warnings = True
+infoMessages = True
+
 logTimings=1
 logToFile=1
 start_time = timer()
@@ -15,7 +19,19 @@ with open(logFileName, "w") as logfile:
     logfile.write("started at %s " % start_time);
     logfile.close();
 
-"""UTILITY FUNCTIONS"""
+def logDebug(msg):
+    if debugMessages:
+        print "DEBUG>>>>> " + str(msg);
+
+def logWarning(msg):
+    if warnings:
+        print "WARNING===== " + str(msg);
+
+def logInfo(msg):
+    if infoMessages:
+        print "INFO..... " + str(msg);
+    
+"""UTILITY FUNCTIONS
 def logDebug(tag, msg):
 	if(logTimings):
 		print((timer() - start_time))
@@ -27,7 +43,7 @@ def logDebug(tag, msg):
 			logfile.write("\n");
 			logfile.close();
 	print(msg)
-"""END UTILITY FUNCTIONS"""
+END UTILITY FUNCTIONS"""
 
 ##http://stackoverflow.com/questions/5478351/python-time-measure-function
 def timing(f):
