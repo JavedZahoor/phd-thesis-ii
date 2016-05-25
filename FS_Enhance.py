@@ -1,3 +1,5 @@
+from ref_2_pca import PCA
+from ref_3_angle import findAngle
 import scipy.io
 import numpy
 import math
@@ -22,11 +24,12 @@ from GlobalUtils import *
 @timing
 def generateNewMetaGene(Fa, Fb):
 	pca = PCA(numpy.column_stack((Fa, Fb)));
+	logDebug("pca = " + str(pca));
 	# need to use either .a or .Y from this object; a is the original but normalized matrix while Y is the transformed one.	
-	ThetaL = angle(pca.Y[0], pca.Y[1]); #find the angle of rotation between the two transformed vectors
+	ThetaL = findAngle(pca[0][0], pca[0][1]); #find the angle of rotation between the two transformed vectors
 	# for now we will just use m as new meta gene
 	m = Fa * math.cos (ThetaL) +  Fb * math.sin(ThetaL)
-	d = Fa * math.cos (ThetaL) -  Fb * math.sin(ThetaL)	
+	#d = Fa * math.cos (ThetaL) -  Fb * math.sin(ThetaL)	
 	return m;
 """End of generateNewMetaGene"""	
 
@@ -50,29 +53,39 @@ def performTreeletClustering(DatasetName):
 		logDebug(theVectors);
 		#logDebug (theVectors);
 		Fa = F[:,theVectors[0]];
+		logDebug("fa = " + str(Fa));
 		Fb = F[:,theVectors[1]];		
 		logInfo(" find a pair of most correlated vectors " + str(i));		
 		#generate a new meta gene using the two picked up columns
-		m = generateNewMetaGene(Fa, Fb)
+		m = generateNewMetaGene(Fa, Fb);
+		logDebug("m = " + str(m));
+		logDebug(m[0]);
+		logDebug(m[1]);
 		#print(" generate one new gene ");
 		#delete the two selected columns from the F and add the newly generate m to F; scipy.delete(F, 0 based index of col, 0=row and 1=col)
 		# REUSE THIS PLACE FOR m F = scipy.delete(F, theVectors[0], 1)		
+		logDebug("Before delete Fa & Fb " + str(F[0,:].size));
 		F = scipy.delete(F, theVectors[1], 1)
-		logDebug(" delete Fa & Fb " + str(F[0,:].size));
+		logDebug("After delete Fa & Fb " + str(F[0,:].size));
 		#F = numpy.column_stack((m, F)) #include in the main feature set
 		
 		if not len(M): #if this is the first meta gene in this matrix
-			M = m
+			M = m;
 		else:
 			M = numpy.column_stack((m, M)) #include in the meta genes set as well
+			logDebug("M = "+str(M));
 		logInfo(" append meta gene ");
 		##remove the tuple at corrPointer and keep the pointer at 0 or increment the pointer and adjust with the update call
 		corrMatrix.pop(0);
 		#corrPointer = corrPointer+1;
 		#now update the corrMatrix for this new vector m; remove the two vectors and related values, use one of them for m
-		corrMatrix = corrCalculator.UpdateSimilarity(corrMatrix, F, m, theVectors[0], theVectors[1]);
-		F[theVectors[0],:]=m;
-		if theVectors[3]=="superceeded" or len(corrMatrix)<=0: #everything after this is potentially incorrect so lets recalculate the matrix
+		corrMatrix = corrCalculator.UpdateSimilarity(corrMatrix, F, list(m), theVectors[0], theVectors[1]);
+		#print(F[theVectors[0]]);
+		#print(m);
+		F[:,theVectors[0]]=m;
+		logDebug("theVectors = " + str(theVectors));
+		logWarning('theVectors MUST INCLUDE superceeded as well, it is 3-dim so far')#theVectors[3]=="superceeded" or
+		if len(corrMatrix)<=0: #everything after this is potentially incorrect so lets recalculate the matrix
 			corrMatrix = corrCalculator.CalculateSimilarity(F, d.GetPartSize(DatasetName), cacheTopXPerPart);
 			
 		
@@ -97,6 +110,9 @@ if __name__=="__main__":
 	main();
 	
 """ REFERENCES
+
+Very Good GPU Tutorial: http://people.duke.edu/~ccc14/sta-663/CUDAPython.html
+
 https://documen.tician.de/pycuda/metaprog.html#metaprog
 
 PCA

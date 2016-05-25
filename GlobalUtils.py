@@ -7,7 +7,7 @@ import traceback
 
 """GLOBALS"""
 debugMessages = True
-warnings = True
+warnings = False
 infoMessages = True
 
 logTimings=1
@@ -56,3 +56,6 @@ def timing(f):
         print '%s function took %0.3f ms' % (f.func_name, (time2-time1)*1000.0)
         return ret
     return wrap
+    
+
+    

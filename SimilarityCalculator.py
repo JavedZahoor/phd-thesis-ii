@@ -57,7 +57,7 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
 
         #return sorted list
         logInfo('going to sort... ');
-        print(vectorCache);
+        logDebug(vectorCache);
         vectorCache.sort(key=lambda x: x[2], reverse=True);#axis=0, kind='quicksort', has 4 things (Fa, Fb, Corr, '')
         logInfo('Calculate Similarity done. ' + str(len(vectorCache)));
         return vectorCache;
@@ -74,18 +74,21 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
             http://stackoverflow.com/questions/946860/using-pythons-list-index-method-on-a-list-of-tuples-or-objects
             5. sort corrMatrix and return
         """
+        logDebug("theGene=");
+        logDebug(theMetagene);
         # 1. Calculate cross of metaGene with the oldmatrix, BEFORE the metagene was added to it so arg max is not self corr
-        theMatrixTranspose = theMatrix.transpose();#convert from 88x1M to 1Mx88 matrix
-        Result = pearson_correlation(theOldMatrix, theMetagene);
+        theMatrixTranspose = theOldMatrix.transpose();#convert from 88x1M to 1Mx88 matrix
+        #pearson_correlation(F.transpose(), numpy.array([m]))
+        Result = pearson_correlation(theMatrixTranspose, numpy.array([theMetagene]));
         # 2. Then find argmax of correlation, this is the only thing we need here
         foundAt = numpy.argmax(Result);
         # 3. calculate i, j from the argmax result and place it in the corrMatrix
-        print(foundAt);
-        l = [x for x, y in enumerate(vectorCache) if y[0] == vectorReplacedWithGene or y[0]==vectorRemoved or y[1]==vectorReplacedWithGene or y[1]==vectorRemoved]
+        logDebug(foundAt);
+        l = [x for x, y in enumerate(corrMatrix) if y[0] == vectorReplacedWithGene or y[0]==vectorRemoved or y[1]==vectorReplacedWithGene or y[1]==vectorRemoved]
         if len(l)>0:
             logWarning("FOUND UNWANTED ENTRIES " + str(len(l)));
             for i in range(0, len(l)):
-                corrMatrix.pop(l(i));
+                corrMatrix.pop(l[i]);
         
         corrMatrix.append((vectorReplacedWithGene, foundAt, Result[foundAt], ''));#http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
         logInfo('concatenation done...');
