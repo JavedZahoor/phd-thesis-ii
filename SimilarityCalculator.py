@@ -37,14 +37,15 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
         
         vectorCache = [];#numpy.array([], dtype=[('i', int), ('j', int), ('corr', float)]);#(-1,-1,0.0)
         for i in range (0, totalParts-1):
-            print("i="+str(i));
+	   
+            print("corr calculator i="+str(i));
             for j in range(i, totalParts-1):
-                logDebug("j=" + str(j));
+                logDebug("corr calculator j=" + str(j)+" out of "+str(totalParts-1));
                 A = theMatrixTranspose[i*aPart:(i+1)*aPart,:].tolist();
                 ## Last part should not take full space if it is not required to do so
                 B = theMatrixTranspose[j*aPart:(j+1)*aPart,:].tolist();
-                logDebug("A = " + str(len(A)));
-                logDebug("B = " + str(len(B)));
+                #logDebug("A = " + str(len(A)));
+                #logDebug("B = " + str(len(B)));
                 if settings.isLocalMachine():
                     Result = A[:][0:1000];
                 else:
@@ -57,12 +58,12 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
 
         #return sorted list
         logInfo('going to sort... ');
-        logDebug(vectorCache);
+        #logDebug(vectorCache);
         vectorCache.sort(key=lambda x: x[2], reverse=True);#axis=0, kind='quicksort', has 4 things (Fa, Fb, Corr, '')
         logInfo('Calculate Similarity done. ' + str(len(vectorCache)));
         return vectorCache;
     
-    @timing
+    #@timing
     def UpdateSimilarity(self, corrMatrix, theOldMatrix, theMetagene, vectorReplacedWithGene, vectorRemoved):
         """
             1. Calculate cross of metaGene with the oldmatrix, BEFORE the metagene was added to it so arg max is not self corr
@@ -74,33 +75,32 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
             http://stackoverflow.com/questions/946860/using-pythons-list-index-method-on-a-list-of-tuples-or-objects
             5. sort corrMatrix and return
         """
-        logDebug("theGene=");
-        logDebug(theMetagene);
-        # 1. Calculate cross of metaGene with the oldmatrix, BEFORE the metagene was added to it so arg max is not self corr
+         # 1. Calculate cross of metaGene with the oldmatrix, BEFORE the metagene was added to it so arg max is not self corr
         theMatrixTranspose = theOldMatrix.transpose();#convert from 88x1M to 1Mx88 matrix
         #pearson_correlation(F.transpose(), numpy.array([m]))
         Result = pearson_correlation(theMatrixTranspose, numpy.array([theMetagene]));
         # 2. Then find argmax of correlation, this is the only thing we need here
         foundAt = numpy.argmax(Result);
         # 3. calculate i, j from the argmax result and place it in the corrMatrix
-        logDebug(foundAt);
+        #logDebug(foundAt);
         l = [x for x, y in enumerate(corrMatrix) if y[0] == vectorReplacedWithGene or y[0]==vectorRemoved or y[1]==vectorReplacedWithGene or y[1]==vectorRemoved]
         if len(l)>0:
             logWarning("FOUND UNWANTED ENTRIES " + str(len(l)));
             for i in range(0, len(l)):
+		print l[i]
                 corrMatrix.pop(l[i]);
-        
-        corrMatrix.append((vectorReplacedWithGene, foundAt, Result[foundAt], ''));#http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
-        logInfo('concatenation done...');
+	#before: corrMatrix.append((vectorReplacedWithGene, foundAt, Result[foundAt], ''));#http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
+        corrMatrix.append((vectorReplacedWithGene, foundAt, Result[foundAt][0], ''));#http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
+        #logInfo('concatenation done...');
 
         #return sorted list
-        logInfo('going to sort...');
+        #logInfo('going to sort...');
         corrMatrix.sort(key=lambda x: x[2], reverse=True);#axis=0, kind='quicksort', 
         
         
         return corrMatrix;
     
-    @timing
+    #@timing
     def ExtractTopCorrValues(self, thematrix, thingsToExtract, dim, globalHash, blockI, blockJ):
         """
         This function is called on a smaller chunk of the vectors to calculate pairwise correlation and to save space, keep the relevant data only
@@ -122,14 +122,14 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
         c=0;
         #Extract upper triangle from the corr matrix
         #1. Pickup the upper triangle from the block, excluding diagonal if it was AxA, else including diagnoal
-        logInfo("Extracting upper triangle...");
+        #logInfo("Extracting upper triangle...");
         t0 = timer();
         xOffset = dim * blockI;
         yOffset = dim * blockJ ;
         for i in range(0, dim):
-            if i%1000==0:
-                print ":" + str(i) + ";",
-                print(timer()-t0);
+            #if i%1000==0:
+                #print ":" + str(i) + ";",
+                #print(timer()-t0);
                 
             start = i+1 if ignoreDiagonal else i;#http://stackoverflow.com/questions/394809/does-python-have-a-ternary-conditional-operator
             for j in range (start, dim):
@@ -140,17 +140,17 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
                 #    print(tuple);
             
         #now we have the required elements only i.e. dim*dim/2 + dim (if diagonal is included)
-        logInfo("Extracting upper triangle... done in " + str(timer() - t0));
+        #logInfo("Extracting upper triangle... done in " + str(timer() - t0));
         
         #2. Sort the extracted data on descending order of corr values
         #now we can sort it once before filtering it #http://stackoverflow.com/questions/20183069/how-to-sort-multidimensional-array-by-column
-        logInfo("Sorting extracted list on corr value " + str(len(upperTriangle)));
+        #logInfo("Sorting extracted list on corr value " + str(len(upperTriangle)));
         t1 = timer();
         upperTriangle.sort(key=lambda x: x[2], reverse=True);
-        logInfo("done in " + str(timer()-t1));
+        #logInfo("done in " + str(timer()-t1));
         
         
-        logInfo("Going to perform the main logic of finding the most correlated vectors from sorted list..." + str(len(upperTriangle)));
+        #logInfo("Going to perform the main logic of finding the most correlated vectors from sorted list..." + str(len(upperTriangle)));
         localHash = {};
         #now lets filter it out the vectors based on their appearance with highest corr
         #every vector is allowed to appear exactly once in desc order of their corr value
@@ -166,7 +166,7 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
             if len(extractedList) >= thingsToExtract:
                 break;
             if globalHash.has_key(str(upperTriangle[c][0])) or globalHash.has_key(str(upperTriangle[c][1])):
-                logWarning("Disruption Found: old " + str(globalHash[str(upperTriangle[c][0])]) + "; new " + str(upperTriangle[c]));
+                #logWarning("Disruption Found: old " + str(globalHash[str(upperTriangle[c][0])]) + "; new " + str(upperTriangle[c]));
                 #First check if it exists in the globalHash then check if we can still consider it
                 if globalHash.has_key(str(upperTriangle[c][0])) and globalHash[str(upperTriangle[c][0])][1] < upperTriangle[c][2]:
                     #we just found a good candidate, but later in the loop
@@ -199,9 +199,9 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
                 In this block, we dont need to check for bigger corr if something reappears, 
                 we know the first comer was chosen based on higher corr value
                 """
-                if c%1000000==0:
-                    print str(c)+"/"+str(len(upperTriangle)),";", str(len(extractedList));
-                    print upperTriangle[c];
+                #if c%1000000==0:
+                    #print str(c)+"/"+str(len(upperTriangle)),";", str(len(extractedList));
+                    #print upperTriangle[c];
                 if localHash.has_key(str(upperTriangle[c][0])) or localHash.has_key(str(upperTriangle[c][1])): #ignore we already have higher local maxima
                     continue;#this one is definitely with lower corr value
                 else:
@@ -211,5 +211,5 @@ class PairwisePearsonCorrelationCalculator(SimilarityCalculator):
                     #add this vector's global indeces and their corr values to the extracted list
                     extractedList.append((upperTriangle[c][0], upperTriangle[c][1], upperTriangle[c][2]));
         
-        logInfo("sending back extractedList with " +str(len(extractedList))+ " items")
+        #logInfo("sending back extractedList with " +str(len(extractedList))+ " items")
         return (extractedList, localHash);

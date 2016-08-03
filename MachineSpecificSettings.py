@@ -15,4 +15,4 @@ class Settings(object):
         return simulating;
     def sampleSize(self):
         logWarning("HARD CODED VALUE IN MachineSpecificSettings.sampleSize()");
-        return 3010;
+        return 1004004;#;10040

@@ -11,8 +11,31 @@ from MachineSpecificSettings import Settings
 from DataSetLoaderLib import DataSetLoader
 from SimilarityCalculator import *
 from GlobalUtils import *
+#For saving and restoring states
+import pickle
+import os.path
+@timing
+def save_F(F):
+ with open('F.pickle', 'w') as f:  
+        pickle.dump([F], f)
 
-#from GlobalUtils import *
+#used for loading data of the variables
+@timing
+def read():
+	try:
+		with open('objs.pickle') as f:  
+        		return pickle.load(f)
+	except:
+		print "main objs file is corrupt i will now load from backup"
+		with open('backup.pickle') as f:  
+        		return pickle.load(f)		
+#use this function in your usual code and call it when you want to save
+@timing
+def save(G,F,M,i,corrMatrix,cacheTopXPerPart):
+    with open('objs.pickle', 'w') as f:  
+        pickle.dump([G,F,M,i,corrMatrix,cacheTopXPerPart], f)
+    with open('backup.pickle', 'w') as f:  
+        pickle.dump([G,F,M,i,corrMatrix,cacheTopXPerPart], f)
 
 """FUNCTION generateNewMetaGene
 	Use Local PCA i.e.
@@ -24,7 +47,7 @@ from GlobalUtils import *
 @timing
 def generateNewMetaGene(Fa, Fb):
 	pca = PCA(numpy.column_stack((Fa, Fb)));
-	logDebug("pca = " + str(pca));
+	#logDebug("pca = " + str(pca));
 	# need to use either .a or .Y from this object; a is the original but normalized matrix while Y is the transformed one.	
 	ThetaL = findAngle(pca[0][0], pca[0][1]); #find the angle of rotation between the two transformed vectors
 	# for now we will just use m as new meta gene
@@ -34,76 +57,70 @@ def generateNewMetaGene(Fa, Fb):
 """End of generateNewMetaGene"""	
 
 """Function performTreeletClustering"""
-@timing
+@timing 
 def performTreeletClustering(DatasetName):
-	#% manually calculating correlation
-	d = DataSetLoader();
-	G = d.LoadDataSet(DatasetName);
-	F = G;
-	M = [];
-	cacheTopXPerPart = d.CacheTopXPerPart(DatasetName);
-	#calculate pairwise pearson correlation once which we will keep on changing with each new iteration
-	corrCalculator = PairwisePearsonCorrelationCalculator();
-	corrMatrix = corrCalculator.CalculateSimilarity(G, d.GetPartSize(DatasetName), cacheTopXPerPart);
-	logInfo("starting off with " + str(len(corrMatrix)) );
-	p = F[0,:].size
-	for i in range (0, p):
-		#steps 1 & 2 of the fig.1 of 20160224 - find pair wise correlation of F and pick the two most correlated columns
-		theVectors = corrMatrix[0];#this is always the max corr so the element we want to process
-		logDebug(theVectors);
-		#logDebug (theVectors);
-		Fa = F[:,theVectors[0]];
-		logDebug("fa = " + str(Fa));
-		Fb = F[:,theVectors[1]];		
-		logInfo(" find a pair of most correlated vectors " + str(i));		
-		#generate a new meta gene using the two picked up columns
-		m = generateNewMetaGene(Fa, Fb);
-		logDebug("m = " + str(m));
-		logDebug(m[0]);
-		logDebug(m[1]);
-		#print(" generate one new gene ");
-		#delete the two selected columns from the F and add the newly generate m to F; scipy.delete(F, 0 based index of col, 0=row and 1=col)
-		# REUSE THIS PLACE FOR m F = scipy.delete(F, theVectors[0], 1)		
-		logDebug("Before delete Fa & Fb " + str(F[0,:].size));
-		F = scipy.delete(F, theVectors[1], 1)
-		logDebug("After delete Fa & Fb " + str(F[0,:].size));
-		#F = numpy.column_stack((m, F)) #include in the main feature set
+	saveFreq=1000
+	#temp value for i
+	x=-1
+	if (not(os.path.isfile("objs.pickle"))):
+		print "New Start"
+		d = DataSetLoader();
+		G = d.LoadDataSet(DatasetName);
+		F = G;
+		M = [];
+		cacheTopXPerPart = d.CacheTopXPerPart(DatasetName);
+		corrCalculator = PairwisePearsonCorrelationCalculator();
+		print "calling corr calculator"
+		corrMatrix = corrCalculator.CalculateSimilarity(G, d.GetPartSize(DatasetName), cacheTopXPerPart);
 		
+	else:
+		print "continuing from where we left off"
+		d = DataSetLoader();
+		G,F,M,x,corrMatrix,cacheTopXPerPart=read()
+		corrCalculator = PairwisePearsonCorrelationCalculator();
+	p = F[0,:].size
+	#because we have already done the previous iteration and loaded that one
+	i=x+1
+	while i<p:
+	#for i in range (x+1, p):
+		#calculating value of p
+		p = F[0,:].size
+		print "Value of i is : "+str(i)+" out of "+str(p)
+		theVectors = corrMatrix[0];#this is always the max corr so the element we want to process
+		Fa = F[:,theVectors[0]];
+		Fb = F[:,theVectors[1]];
+		print "calling generate metagene"		
+		m = generateNewMetaGene(Fa, Fb);
+		print "calling scipy delete on F"
+		F = scipy.delete(F, theVectors[1], 1)
 		if not len(M): #if this is the first meta gene in this matrix
 			M = m;
 		else:
 			M = numpy.column_stack((m, M)) #include in the meta genes set as well
-			logDebug("M = "+str(M));
-		logInfo(" append meta gene ");
-		##remove the tuple at corrPointer and keep the pointer at 0 or increment the pointer and adjust with the update call
-		corrMatrix.pop(0);
-		#corrPointer = corrPointer+1;
-		#now update the corrMatrix for this new vector m; remove the two vectors and related values, use one of them for m
+		corrMatrix.pop(0);		
 		corrMatrix = corrCalculator.UpdateSimilarity(corrMatrix, F, list(m), theVectors[0], theVectors[1]);
-		#print(F[theVectors[0]]);
-		#print(m);
 		F[:,theVectors[0]]=m;
-		logDebug("theVectors = " + str(theVectors));
-		logWarning('theVectors MUST INCLUDE superceeded as well, it is 3-dim so far')#theVectors[3]=="superceeded" or
 		if len(corrMatrix)<=0: #everything after this is potentially incorrect so lets recalculate the matrix
 			corrMatrix = corrCalculator.CalculateSimilarity(F, d.GetPartSize(DatasetName), cacheTopXPerPart);
-			
-		
+		if i % saveFreq==0:
+			save(G,F,M,i,corrMatrix,cacheTopXPerPart)
+		i+=1
 	F = numpy.column_stack((G, M)) #scipy.append(G, M, 1) #define a new expanded featureset F = G U M	
-	logInfo(" generate treelet clustering ")
 	return F
-"""END OF FUNCTION performTreeletClustering"""
+
+#END OF FUNCTION performTreeletClustering"""
 
 
 
-""" MAIN CODE FOR TREELET CLUSTERING """
+# MAIN CODE FOR TREELET CLUSTERING """
 def main():
 	F = performTreeletClustering("A");
-	json.dump(F, open('treelet.json','w'));
-	numpy.save('treelet.npy', F)	
-	with open("log.txt", "a") as logfile:
-		logfile.write("--- %s completed the treelet clustering " + tag + "---" % (time.time() - start_time));
-		logfile.close();
+	save_F(F);
+	#json.dump(F, open('treelet.json','w'));
+	#numpy.save('treelet.npy', F)	
+	#with open("log.txt", "a") as logfile:
+		#logfile.write("--- %s completed the treelet clustering " + tag + "---" % (time.time() - start_time));
+		#logfile.close();
 
 
 if __name__=="__main__":

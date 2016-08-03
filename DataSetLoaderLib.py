@@ -16,10 +16,10 @@ class DataSetLoader(object):
         if dataSetType == "A":
             ## HARDCODING
             logWarning("HARD CODED VALUE from DataSetLoaderLib.GetPartSize()");
-            return 500;#20080; #should be 1004004/36
+            return 2510;#20080; #should be 1004004/36
             
     def CacheTopXPerPart(self, dataSetType):
         if dataSetType == "A":
             ## HARDCODING
             logWarning("HARD CODED VALUE from DataSetLoaderLib.CacheTopXPerPart()");
-            return 1000;
+            return 10;#1000
