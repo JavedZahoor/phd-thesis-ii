@@ -27,6 +27,7 @@ Located and downloaded the MAQC Datasets, understood the data from dataset A, co
 * Tuned the Part Size and Top X cache etc. such that now it takes more iterations to complete but the RAM has reduced down to less than 50% and atleast the meta-gene-generation-process can complete (in upto 2 days).
 * Since the server would not be up always and since the OS taught me a good lesson, decided to incorporate partial-state-save/resume-on-restart functionality so even if the server crashes uninformed, we can atleast resume. After all no-one can just sit there for days watch the process to complete and we need to run the process several times for sure.
 * While trying to implement Step 2 of Feature Selection using LDA, realized that the dataset (the .cel files i am using) doesnt have any clue/information about the class/label of the sample. Tried multiple times to read the MAQC-II paper again and again without any success about where to find the class/label information.
+
 ### Aug 2016:
 * Finally found the class/label information using the GEO2R tool provided for online data analysis, which definitely means the information is available somewhere else, which when used through this utility gets populated otherwise it is not directly evident where to find it. Anyway found the required class info from http://www.ncbi.nlm.nih.gov/geo/geo2r?acc=GSE24061. This can be opened from the individual dataset links from the main topic.
 * So finally started putting together the bits and pieces for Feature Selection step!
