@@ -1,5 +1,5 @@
 # PhD Thesis II - Reproduce comparative environment to benchmark against
-## Rockblocks so far
+## Roadblocks so far
 ### Jan 2016: 
 Located and downloaded the MAQC Datasets, understood the data from dataset A, converted it from microarray to .nat format with only intensities
 
@@ -31,3 +31,6 @@ Located and downloaded the MAQC Datasets, understood the data from dataset A, co
 ### Aug 2016:
 * Finally found the class/label information using the GEO2R tool provided for online data analysis, which definitely means the information is available somewhere else, which when used through this utility gets populated otherwise it is not directly evident where to find it. Anyway found the required class info from http://www.ncbi.nlm.nih.gov/geo/geo2r?acc=GSE24061. This can be opened from the individual dataset links from the main topic.
 * So finally started putting together the bits and pieces for Feature Selection step!
+
+### Sep 2016:
+* Running and Rerunning both the steps for troubleshooting and validation
