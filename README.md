@@ -1,4 +1,4 @@
-# PhD Thesis II - Reproduce comparative environment to benchmark against
+# PhD Thesis III - Research Experimentation
 ## Roadblocks so far
 ### Jan 2016: 
 Located and downloaded the MAQC Datasets, understood the data from dataset A, converted it from microarray to .nat format with only intensities
@@ -34,3 +34,10 @@ Located and downloaded the MAQC Datasets, understood the data from dataset A, co
 
 ### Sep 2016:
 * Running and Rerunning both the steps for troubleshooting and validation
+
+### Sep 2016 (Feedback Received and Pivoting):
+* No need to exactly replicate the environment first. Just start pivoting.
+* Validate your Algo by using a smaller dataset and using library vs your program to compare the results
+* Dont go for brute force as per the paper being implemented, for such data random-walk and approximation is okay. So probably implement mRMR or some other technique as a preprocessing step and perhaps then do Treelet Clustering
+* Generate an ensemble already by generating smaller datasets with random walk, then use this ensemble for classification with different boosting techniques
+* Found https://github.com/nlhepler/mrmr as mrmr lib for python and going to implement it as preprocessing step.
