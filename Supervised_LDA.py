@@ -23,6 +23,7 @@ def J_Exp(r, error, sigma): #works better with correlation based Metagenes
 def reliability(classifier, testSet, overallSigma):
     n_test = np.shape(testSet)[0];
     #split the test dataset into two subsets 
+    lastIndex = testSet.shape[1]-1;
     class1Data = testSet[numpy.where(testSet[:,lastIndex]==0)[0],:];
     size_class1 = class1Data.shape()[0];
     
@@ -68,9 +69,10 @@ def PredictClass(classifier, sample):
 
 @timing
 def Evaluate(classifier, dataSet, testSet, testLabels, positiveLabel):
+    testLabels = numpy.array(testLabels);
     predictions = classifier.predict(testSet);
     TP = TN = FP = FN = 0; 
-    for i in range(0, testLabels.size()):
+    for i in range(0, testLabels.shape[0]):
         if testLabels[i]==positiveLabel:
             if predictions[i]==testLabels[i]:
                 TP = TP + 1;
@@ -82,13 +84,13 @@ def Evaluate(classifier, dataSet, testSet, testLabels, positiveLabel):
             else:
                 FP = FP + 1;
     errorRate = ErrorRate(TP, TN, FP, FN);
-    r = reliability(classifier, testSet, overallSigma(dataSet));
+    r = reliability(classifier, testSet, OverallSigma(dataSet));
     return [errorRate, r, J_Exp(r, errorRate, 0.5)];
     
 
 """ MAIN CODE FOR TREELET CLUSTERING """
 def main():
-    datasetLoader = new DataSetLoader();
+    datasetLoader = DataSetLoader();
     classLabels = []
     classLabels.append(datasetLoader.GetClassLabels("A"))
     

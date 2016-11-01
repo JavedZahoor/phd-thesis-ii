@@ -14,6 +14,19 @@ from GlobalUtils import *
 #For saving and restoring states
 import pickle
 import os.path
+
+@timing
+def checkCorr(corrMatrix,p):
+	for i in corrMatrix:
+		if i[0]>p:
+			print i[0]
+			print "ERROR"
+			return 0
+		if i[1]>p:
+			print i[1]
+			print "ERROR"
+			return 0
+
 @timing
 def save_F(F):
  with open('F.pickle', 'w') as f:  
@@ -81,12 +94,20 @@ def performTreeletClustering(DatasetName):
 	p = F[0,:].size
 	#because we have already done the previous iteration and loaded that one
 	i=x+1
+	
 	while i<p:
 	#for i in range (x+1, p):
+		if checkCorr(corrMatrix,p)==0:
+			print "ERROR IN CORRMATRIX INDEX"
+			return 0;
 		#calculating value of p
 		p = F[0,:].size
 		print "Value of i is : "+str(i)+" out of "+str(p)
 		theVectors = corrMatrix[0];#this is always the max corr so the element we want to process
+		if(corrMatrix[0][3]=='')
+			recalc = False;
+		else
+			recalc = True;
 		Fa = F[:,theVectors[0]];
 		Fb = F[:,theVectors[1]];
 		print "calling generate metagene"		
@@ -100,7 +121,7 @@ def performTreeletClustering(DatasetName):
 		corrMatrix.pop(0);		
 		corrMatrix = corrCalculator.UpdateSimilarity(corrMatrix, F, list(m), theVectors[0], theVectors[1]);
 		F[:,theVectors[0]]=m;
-		if len(corrMatrix)<=0: #everything after this is potentially incorrect so lets recalculate the matrix
+		if len(corrMatrix)<=0 or recalc==True: #everything after this is potentially incorrect so lets recalculate the matrix
 			corrMatrix = corrCalculator.CalculateSimilarity(F, d.GetPartSize(DatasetName), cacheTopXPerPart);
 		if i % saveFreq==0:
 			save(G,F,M,i,corrMatrix,cacheTopXPerPart)

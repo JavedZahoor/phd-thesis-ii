@@ -18,12 +18,16 @@ Feature Selection:
 """
 
 import numpy
-from DataSetLoaderLib import EnhancedDataSetLoader
+from DataSetLoaderLib import DataSetLoader
 from itertools import *
-from Unsupervised_LDA import *
+from Supervised_LDA import *
 import random
-from Combinator import *
+#from Combinator import *
+from GlobalUtils import *
 
+def getNextCombination():
+    logWarning('HARDCODED COMBINATION');
+    return [1,4,7,34,2,6,8,900];
 """ MAIN CODE FOR TREELET CLUSTERING """
 def main():
     """
@@ -35,25 +39,58 @@ def main():
                 create trainingSet of size partition
                 create testSet of size length-partition
                 calculate Error Rate & Reliability using CV10
-                calculate avg Error Rate and Avg Reliability
+                calculate avg Error Rate and Avg Reliability 
         pick the best
     """
-    datasetLoader = new DataSetLoader();
-    
+    print("\n\n\n\n\n");
+    datasetLoader = DataSetLoader();
+    setSize = 3;
+    CVSetting = 2;
     classLabels = [];
     enhancedGeneSet = [];
-    classLabels.append(datasetLoader.GetClassLabels("A"));
-    enhancedGeneSet.append(datasetLoader.LoadDataSet("A"));#TODO:  Load Enhanced DataSet using DataSetLoaderLib
-    for i in range(0, enhancedGeneSet.shape()[1]): #Using CV1
-        aCombination = getNextCombination();
-        tempDataSet = enhancedGeneSet[:, aCombination];
-        for partition in range(1, tempDataSet.shape()[0]):
-            trainingLabels = classLabels[0:partition, :];
-            trainingSet = tempDataSet[0:partition, :];
-            testSet = tempDataSet[1+partition:tempDataSet.shape()[0]-1, :];
-            testLabels = classLabels[1+partition:tempDataSet.shape()[0]-1, :];
-            classifier = Train(trainingSet, trainingLabels);
-            errorRate, reliability, jScore = Evaluate(classifier, tempDataSet testSet, testLabels, 1);
+    classLabels.extend(datasetLoader.GetClassLabels("A"));
+    enhancedGeneSet.extend(datasetLoader.LoadEnhancedDataSet("A"));
+    enhancedGeneSet = np.array(enhancedGeneSet);
+    logInfo('Loaded the datasets');
+    
+    for s in range(1, 1+setSize):
+        for i in range(0, np.array(enhancedGeneSet).shape[1]): 
+            allCombinations = combinations(range(1,1+enhancedGeneSet.shape[1]-1),s);#TODO: go from 1 to setSize and for the selected top X from amongst one level, make sure the next level subset contains them as prefix so we 
+            logInfo("allCombinations generated...")
+            for aCombination in allCombinations:
+                logDebug('aCombination');
+                logDebug(aCombination);
+                #on this combination, perform LOOCV (Leave one out cross validation)
+                tempDataSet = enhancedGeneSet[:, aCombination[:]];
+                
+                logDebug ('temp Data Set ');
+                logDebug (tempDataSet.shape);
+
+                logInfo('going to partition the tempDataSet');
+                logDebug(tempDataSet.shape[0]);
+                
+                for partition in range(CVSetting, 1+tempDataSet.shape[0]): #Using CV1
+                    logDebug("Partition");
+                    logDebug(partition);
+                    
+                    trainingLabels = classLabels[0:partition];
+                    trainingSet = tempDataSet[0:partition, :];
+                    
+                    logDebug('training set');
+                    logDebug(trainingSet.shape);
+                    
+                    testSet = tempDataSet[partition:tempDataSet.shape[0], :];
+                    testLabels = classLabels[partition:tempDataSet.shape[0]];
+                    
+                    logDebug('test set');
+                    logDebug(testSet.shape);
+                    print (trainingLabels);
+                    print (trainingSet);
+                    classifier = Train(trainingSet, trainingLabels);
+                    errorRate, reliability, jScore = Evaluate(classifier, tempDataSet, testSet, testLabels, 1);
+                    
+                    print errorRate, ";", reliability, ";", jScore;
+                    return;
 
 if __name__=="__main__":
     main();

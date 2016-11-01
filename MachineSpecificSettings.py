@@ -1,13 +1,15 @@
 from GlobalUtils import *
 class Settings(object):
     def getBasePath(self):
-        return '/home/javedzahoor/research/mattia/code/';
+        return 'C:\\Users\\javed.zahoor\\Dropbox\\PhD\\Research-2015-05-04\\Research\\Thesis II\\Datasets\\';
+        #'/home/javedzahoor/research/mattia/code/';
     
     def getDatasetAFileName(self):
         return 'DataSetA-Loaded-88x1004004.mat';
         
     def getInterimPath(self):
-        return '../data/';
+        return '';
+        #'../data/';
     def isLocalMachine(self):
         simulating = False;
         if simulating:
